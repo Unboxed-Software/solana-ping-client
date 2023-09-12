@@ -48,4 +48,7 @@ const signature = await web3.sendAndConfirmTransaction(
   [payer]
 );
 
-console.log(`✅ Transaction completed! Signature is ${signature}`);
+console.log(`✅ Transaction completed! You can view your transaction on the Solana Explorer at:`);
+console.log(`https://explorer.solana.com/tx/${signature}?cluster=${CLUSTER_NAME}`);
+
+
