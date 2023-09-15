@@ -1,54 +1,54 @@
-import web3 = require('@solana/web3.js')
-import Dotenv from 'Dotenv'
-Dotenv.config()
+import web3 from "@solana/web3.js";
+import * as dotenv from "dotenv";
+import { getKeypairFromEnvironment } from "@solana-developers/node-helpers";
 
-const PROGRAM_ADDRESS = 'ChT1B39WKLS8qUrkLvFDXMhEJ4F1XZzwUNHUt4AU9aVa'
-const PROGRAM_DATA_ADDRESS = 'Ah9K7dQ8EHaZqcAsgBW8w37yN2eAy3koFmUn4x3CJtod'
+const CLUSTER_NAME = "devnet";
 
-async function main() {
-    const payer = initializeKeypair()
-    const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
-    await connection.requestAirdrop(payer.publicKey, web3.LAMPORTS_PER_SOL*1)
-    await pingProgram(connection, payer)
-}
+const PING_PROGRAM_ADDRESS = new web3.PublicKey(
+  "ChT1B39WKLS8qUrkLvFDXMhEJ4F1XZzwUNHUt4AU9aVa"
+);
+const PING_PROGRAM_DATA_ADDRESS = new web3.PublicKey(
+  "Ah9K7dQ8EHaZqcAsgBW8w37yN2eAy3koFmUn4x3CJtod"
+);
 
-function initializeKeypair(): web3.Keypair {
-    const secret = JSON.parse(process.env.PRIVATE_KEY ?? "") as number[]
-    const secretKey = Uint8Array.from(secret)
-    const keypairFromSecretKey = web3.Keypair.fromSecretKey(secretKey)
-    return keypairFromSecretKey
-}
+dotenv.config();
 
-async function pingProgram(connection: web3.Connection, payer: web3.Keypair) {
-    const transaction = new web3.Transaction()
+const payer = getKeypairFromEnvironment("SECRET_KEY");
+console.log(`🔑 Loaded keypair ${payer.publicKey.toBase58()}!`);
 
-    const programId = new web3.PublicKey(PROGRAM_ADDRESS)
-    const programDataPubkey = new web3.PublicKey(PROGRAM_DATA_ADDRESS)
+const connection = new web3.Connection(web3.clusterApiUrl(CLUSTER_NAME));
+console.log(`⚡️ Connected to Solana ${CLUSTER_NAME} cluster!`);
 
-    const instruction = new web3.TransactionInstruction({
-        keys: [
-            {
-                pubkey: programDataPubkey,
-                isSigner: false,
-                isWritable: true
-            },
-        ],
-        programId
-    });
+// Note: may not work first time as `await` returns before Lamports are confirmed.
+// Being fixed in https://github.com/solana-labs/solana-web3.js/issues/1579
+await connection.requestAirdrop(payer.publicKey, web3.LAMPORTS_PER_SOL * 1);
+console.log(`💸 Got some ${CLUSTER_NAME} lamports!`);
 
-    transaction.add(instruction)
+const transaction = new web3.Transaction();
 
-    const sig = await web3.sendAndConfirmTransaction(
-        connection,
-        transaction,
-        [payer],
-    )
+const programId = new web3.PublicKey(PING_PROGRAM_ADDRESS);
+const pingProgramDataId = new web3.PublicKey(PING_PROGRAM_DATA_ADDRESS);
 
-    console.log(`You can view your transaction on the Solana Explorer at:\nhttps://explorer.solana.com/tx/${sig}?cluster=devnet`);
-}
+const instruction = new web3.TransactionInstruction({
+  keys: [
+    {
+      pubkey: pingProgramDataId,
+      isSigner: false,
+      isWritable: true,
+    },
+  ],
+  programId,
+});
 
-main().then(() => {
-    console.log("Finished successfully")
-}).catch((error) => {
-    console.error(error);
-})
+transaction.add(instruction);
+
+const signature = await web3.sendAndConfirmTransaction(
+  connection,
+  transaction,
+  [payer]
+);
+
+console.log(`✅ Transaction completed! You can view your transaction on the Solana Explorer at:`);
+console.log(`https://explorer.solana.com/tx/${signature}?cluster=${CLUSTER_NAME}`);
+
+
